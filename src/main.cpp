@@ -80,21 +80,15 @@ void setup()
         {
           float lux = sensors.read_lightmeter();
 
-          if (lux < 100)
+          if (lux <= 0)
           {
-            indication.analog_led(128);
-          }
-          else if (lux < 1000)
-          {
-            indication.analog_led(192);
-          }
-          else if (lux < 10000)
-          {
-            indication.analog_led(255);
+            indication.analog_led(0);
           }
           else
           {
-            indication.analog_led(0);
+            float logLux = log10(lux);
+            float scaledLux = map(logLux, -1, 4, 100, 255);
+            indication.analog_led(scaledLux);
           } },
         100);
   }
