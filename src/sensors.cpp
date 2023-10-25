@@ -22,7 +22,7 @@ BMP280Data Sensors::read_bmp()
 {
     BMP280Data data;
     data.temperature = bmp.readTemperature();
-    data.pressure = bmp.readPressure() / 100.0F;
+    data.pressure = bmp.readPressure();
     data.altitude = bmp.readAltitude(SEALEVELPRESSURE_HPA);
 
     this->data.bmp = data;
@@ -38,10 +38,10 @@ bool Sensors::init_ds18b20()
     ds18b20.begin();
 
     uint8_t device_count = ds18b20.getDeviceCount();
-
     if (device_count > 0)
     {
         this->data.ds18b20.resize(device_count);
+        ds18b20.requestTemperatures();
         Serial.printf(" Done (%d devices found)\n", ds18b20.getDeviceCount());
         return true;
     }

@@ -20,13 +20,12 @@ void task_bmp_read()
   BMP280Data bmp_data = sensors.read_bmp();
 
   Serial.printf("[BMP280] Temperature: %f℃\n", bmp_data.temperature);
-  Serial.printf("[BMP280] Pressure: %fhPa\n", bmp_data.pressure);
+  Serial.printf("[BMP280] Pressure: %fPa\n", bmp_data.pressure);
   Serial.printf("[BMP280] Altitude: %fm\n", bmp_data.altitude);
 }
 
 void task_ds18b20_read()
 {
-
   for (uint8_t i = 0; i < sensors.get_ds18b20_count(); i++)
   {
     DS18B20Data ds18b20_data = sensors.read_ds18b20(i);
@@ -35,7 +34,8 @@ void task_ds18b20_read()
   }
 }
 
-void task_post_sensor_data() {
+void task_post_sensor_data()
+{
   Serial.println("[HTTP] Posting sensor data");
 
   network.post(POST_URL, sensors.get_json());
