@@ -1,12 +1,12 @@
-#include "Sensors.hpp"
+#include "sensors.hpp"
 
 bool Sensors::init_bmp()
 {
-    
+
     Serial.print("[Sensors] Initializing BMP280...");
     if (bmp.begin(0x76, 0x60))
     {
-        
+
         Serial.println(" Done");
         return true;
     }
@@ -24,6 +24,9 @@ BMP280Data Sensors::read_bmp()
     data.temperature = bmp.readTemperature();
     data.pressure = bmp.readPressure() / 100.0F;
     data.altitude = bmp.readAltitude(SEALEVELPRESSURE_HPA);
+
+    this->data.bmp = data;
+
     return data;
 }
 
@@ -34,8 +37,11 @@ bool Sensors::init_ds18b20()
     ds18b20.setOneWire(&oneWire);
     ds18b20.begin();
 
-    if (ds18b20.getDeviceCount() > 0)
+    uint8_t device_count = ds18b20.getDeviceCount();
+
+    if (device_count > 0)
     {
+        this->data.ds18b20.resize(device_count);
         Serial.printf(" Done (%d devices found)\n", ds18b20.getDeviceCount());
         return true;
     }
@@ -50,6 +56,9 @@ DS18B20Data Sensors::read_ds18b20(uint8_t index)
 {
     DS18B20Data data;
     data.temperature = ds18b20.getTempCByIndex(index);
+
+    this->data.ds18b20[index] = data;
+
     return data;
 }
 
@@ -75,5 +84,31 @@ bool Sensors::init_lightmeter()
 
 float Sensors::read_lightmeter()
 {
+    this->data.lightmeter = lightMeter.readLightLevel();
     return lightMeter.readLightLevel();
+}
+
+const char *Sensors::get_json()
+{
+    std::ostringstream stream;
+    float totalTemperature = this->data.bmp.temperature;
+    for (const auto &sensor : this->data.ds18b20)
+    {
+        totalTemperature += sensor.temperature;
+    }
+
+    float temperature = totalTemperature / (this->data.ds18b20.size() + 1);
+    float pressure = this->data.bmp.pressure;
+    float altitude = this->data.bmp.altitude;
+    float lightmeter = this->data.lightmeter;
+
+    stream << "{";
+    stream << "\"temperature\": " << temperature << ",";
+    stream << "\"pressure\": " << pressure << ",";
+    stream << "\"altitude\": " << altitude << ",";
+    stream << "\"lightmeter\": " << lightmeter;
+    stream << "}";
+
+    jsonOutput = stream.str();
+    return jsonOutput.c_str();
 }

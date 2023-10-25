@@ -1,4 +1,4 @@
-#include "Scheduler.hpp"
+#include "scheduler.hpp"
 
 void Scheduler::add_task(const char *name, std::function<void()> function, unsigned long interval)
 {

@@ -1,0 +1,215 @@
+#include "network.hpp"
+
+// Let's Encrypt Root certificate
+// https://letsencrypt.org/certificates/
+const char *rootCACertificate = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
+WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu
+ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY
+MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
+h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
+0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
+A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW
+T8KOEUt+zwvo/7V3LvSye0rgTBIlDHCNAymg4VMk7BPZ7hm/ELNKjD+Jo2FR3qyH
+B5T0Y3HsLuJvW5iB4YlcNHlsdu87kGJ55tukmi8mxdAQ4Q7e2RCOFvu396j3x+UC
+B5iPNgiV5+I3lg02dZ77DnKxHZu8A/lJBdiB3QW0KtZB6awBdpUKD9jf1b0SHzUv
+KBds0pjBqAlkd25HN7rOrFleaJ1/ctaJxQZBKT5ZPt0m9STJEadao0xAH0ahmbWn
+OlFuhjuefXKnEgV4We0+UXgVCwOPjdAvBbI+e0ocS3MFEvzG6uBQE3xDk3SzynTn
+jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw
+qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI
+rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV
+HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq
+hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL
+ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ
+3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK
+NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5
+ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur
+TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC
+jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc
+oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
+4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
+mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
+emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
+-----END CERTIFICATE-----
+)EOF";
+
+Network::Network()
+{
+  onConnectStart = []() {};
+  onConnectFinish = []() {};
+  onPostStart = []() {};
+  onPostFinish = []() {};
+  ssid = NULL;
+  password = NULL;
+  bearerToken = NULL;
+  secureClient.setCACert(rootCACertificate);
+}
+
+void Network::setWiFiCredentials(const char *ssid, const char *password)
+{
+  this->ssid = ssid;
+  this->password = password;
+}
+
+void Network::setBearerToken(const char *bearerToken)
+{
+  this->bearerToken = bearerToken;
+}
+
+void Network::connect()
+{
+  if (ssid == NULL || password == NULL)
+  {
+    Serial.println("[WiFi] WiFi credentials not set");
+    return;
+  }
+
+  onConnectStart();
+  Serial.printf("[WiFi] Connecting to \"%s\"...", ssid);
+
+  unsigned long startTime = millis();
+  unsigned long reconnectInterval = WIFI_RECONNECT_INTERVAL;
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    if (millis() - startTime > reconnectInterval)
+    {
+      Serial.printf("\n[WiFi] WiFi connection failed. Attempting to reconnect in %dms\n", reconnectInterval);
+      WiFi.disconnect();
+      onConnectFinish();
+      delay(WIFI_STATUS_CHECK_INTERVAL);
+      onConnectStart();
+      WiFi.begin(ssid, password);
+      startTime = millis();
+      reconnectInterval += WIFI_RECONNECT_BACKOFF;
+    }
+    delay(WIFI_STATUS_CHECK_INTERVAL);
+    Serial.print(".");
+  }
+  Serial.println(" Done");
+
+  Serial.printf("[WiFi] Local IP obtained: %s\n", WiFi.localIP().toString().c_str());
+  onConnectFinish();
+}
+
+void Network::checkConnection()
+{
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("[WiFi] Connection lost. Attempting to reconnect...");
+    this->connect();
+  }
+  else
+  {
+    Serial.println("[WiFi] Connection OK");
+  }
+}
+
+void Network::setOnConnectStart(void (*onConnectStart)())
+{
+  this->onConnectStart = onConnectStart;
+}
+
+void Network::setOnConnectFinish(void (*onConnectFinish)())
+{
+  this->onConnectFinish = onConnectFinish;
+}
+
+void Network::setOnPostStart(void (*onPostStart)())
+{
+  this->onPostStart = onPostStart;
+}
+
+void Network::setOnPostFinish(void (*onPostFinish)())
+{
+  this->onPostFinish = onPostFinish;
+}
+
+bool Network::post(const char *url, const char *payload)
+{
+  onPostStart();
+  Serial.printf("[HTTP] POSTing to %s\n", url);
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("[HTTP] WiFi not connected");
+    onPostFinish();
+    return false;
+  }
+
+  HTTPClient https;
+  https.begin(secureClient, url);
+  https.addHeader("Content-Type", "application/json");
+
+  if (bearerToken != NULL)
+  {
+    https.addHeader("Authorization", bearerToken);
+  }
+
+  int httpResponseCode = https.POST(payload);
+
+  if (httpResponseCode == 201 || httpResponseCode == 200)
+  {
+    String response = https.getString();
+    Serial.println("[HTTP] POST success");
+    Serial.println(response);
+    onPostFinish();
+    return true;
+  }
+  else
+  {
+    Serial.printf("[HTTP] POST failed with error %d\n", httpResponseCode);
+    onPostFinish();
+    return false;
+  }
+}
+
+// void postData()
+// {
+//   pinMode(LED_BUILTIN, OUTPUT);
+//   digitalWrite(LED_BUILTIN, HIGH);
+
+//   HTTPClient https;
+
+//   Serial.println("Posting data to metrics server");
+
+//   String jsonData = "{";
+//   jsonData += "\"rawTemperature\": " + String(iaqSensor.rawTemperature) + ",";
+//   jsonData += "\"pressure\": " + String(iaqSensor.pressure) + ",";
+//   jsonData += "\"rawHumidity\": " + String(iaqSensor.rawHumidity) + ",";
+//   jsonData += "\"gasResistance\": " + String(iaqSensor.gasResistance) + ",";
+//   jsonData += "\"iaq\": " + String(iaqSensor.iaq) + ",";
+//   jsonData += "\"iaqAccuracy\": " + String(iaqSensor.iaqAccuracy) + ",";
+//   jsonData += "\"temperature\": " + String(iaqSensor.temperature) + ",";
+//   jsonData += "\"humidity\": " + String(iaqSensor.humidity) + ",";
+//   jsonData += "\"staticIaq\": " + String(iaqSensor.staticIaq) + ",";
+//   jsonData += "\"co2Equivalent\": " + String(iaqSensor.co2Equivalent) + ",";
+//   jsonData += "\"breathVocEquivalent\": " + String(iaqSensor.breathVocEquivalent);
+//   jsonData += "}";
+
+//   https.begin(secureClient, serverName);
+//   https.addHeader("Content-Type", "application/json");
+//   https.addHeader("Authorization", bearerToken);
+
+//   int httpResponseCode = https.POST(jsonData);
+
+//   if (httpResponseCode == 201)
+//   {
+//     String response = https.getString(); // You can print this to the serial monitor if you wish
+//     Serial.println(httpResponseCode);    // Print HTTP return code
+//     Serial.println(response);            // Print HTTP response
+//   }
+//   else
+//   {
+//     Serial.print("Error on sending POST: ");
+//     Serial.println(httpResponseCode);
+//   }
+
+//   https.end(); // Free the resources
+//   digitalWrite(LED_BUILTIN, LOW);
+// }

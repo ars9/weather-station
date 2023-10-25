@@ -1,16 +1,16 @@
 #include "./credentials.hpp"
 
-#include "Indication.hpp"
-#include "Network.hpp"
-#include "Scheduler.hpp"
-#include "Sensors.hpp"
+#include "indication.hpp"
+#include "network.hpp"
+#include "scheduler.hpp"
+#include "sensors.hpp"
 
 #define TICK_INTERVAL 100
 #define SERIAL_BAUD_RATE 115200
 
 const int LED_BUILTIN = 2;
 
-Network network = Network(WIFI_SSID, WIFI_PASSWORD);
+Network network = Network();
 Indication indication = Indication();
 Scheduler scheduler = Scheduler();
 Sensors sensors = Sensors();
@@ -35,6 +35,12 @@ void task_ds18b20_read()
   }
 }
 
+void task_post_sensor_data() {
+  Serial.println("[HTTP] Posting sensor data");
+
+  network.post(POST_URL, sensors.get_json());
+}
+
 void setup()
 {
   Serial.begin(SERIAL_BAUD_RATE);
@@ -45,13 +51,20 @@ void setup()
   indication.set_dac_led_channel(DAC_CHANNEL_1);
   indication.begin();
 
-  // Turn on indicator when starting to connect to WiFi
+  network.setWiFiCredentials(WIFI_SSID, WIFI_PASSWORD);
+  network.setBearerToken(BEARER_TOKEN);
+
   network.setOnConnectStart([]()
                             { indication.status_on(); });
 
-  // Turn off indicator when WiFi connection is established
   network.setOnConnectFinish([]()
                              { indication.status_off(); });
+
+  network.setOnPostStart([]()
+                         { indication.status_on(); });
+
+  network.setOnPostFinish([]()
+                          { indication.status_off(); });
 
   scheduler.add_task(
       "Check WiFi connection", []()
@@ -92,6 +105,8 @@ void setup()
           } },
         100);
   }
+
+  scheduler.add_task("Post sensor data", task_post_sensor_data, 60000);
 
   network.connect();
 }

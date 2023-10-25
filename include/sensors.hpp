@@ -6,6 +6,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <BH1750.h>
+#include <vector>
+#include <sstream>
 
 #define BMP_SDA 21
 #define BMP_SCL 22
@@ -26,6 +28,13 @@ struct DS18B20Data
     float temperature;
 };
 
+struct SensorData
+{
+    BMP280Data bmp;
+    std::vector<DS18B20Data> ds18b20;
+    float lightmeter;
+};
+
 class Sensors
 {
 public:
@@ -38,11 +47,17 @@ public:
     uint8_t get_ds18b20_count();
     float read_lightmeter();
 
+    const char* get_json();
+
 private:
     Adafruit_BMP280 bmp;
     OneWire oneWire;
     DallasTemperature ds18b20;
     BH1750 lightMeter;
+
+    // Accumulate latest sensor data here
+    std::string jsonOutput;
+    SensorData data;
 };
 
 #endif
