@@ -1,10 +1,10 @@
 #include "sensors.hpp"
 
-bool Sensors::init_bmp()
+bool Sensors::init_bmp280()
 {
 
     Serial.print("[Sensors] Initializing BMP280...");
-    if (bmp.begin(0x76, 0x60))
+    if (bmp280.begin(0x76, 0x60))
     {
 
         Serial.println(" Done");
@@ -13,19 +13,19 @@ bool Sensors::init_bmp()
     else
     {
         Serial.println(" Failed");
-        Serial.printf("Status: %d\n", bmp.sensorID());
+        Serial.printf("Status: %d\n", bmp280.sensorID());
         return false;
     }
 }
 
-BMP280Data Sensors::read_bmp()
+BMP280Data Sensors::read_bmp280()
 {
     BMP280Data data;
-    data.temperature = bmp.readTemperature();
-    data.pressure = bmp.readPressure();
-    data.altitude = bmp.readAltitude(SEALEVELPRESSURE_HPA);
+    data.temperature = bmp280.readTemperature();
+    data.pressure = bmp280.readPressure();
+    data.altitude = bmp280.readAltitude(SEALEVELPRESSURE_HPA);
 
-    this->data.bmp = data;
+    this->data.bmp280 = data;
 
     return data;
 }
@@ -91,15 +91,15 @@ float Sensors::read_lightmeter()
 const char *Sensors::get_json()
 {
     std::ostringstream stream;
-    float totalTemperature = this->data.bmp.temperature;
+    float totalTemperature = this->data.bmp280.temperature;
     for (const auto &sensor : this->data.ds18b20)
     {
         totalTemperature += sensor.temperature;
     }
 
     float temperature = totalTemperature / (this->data.ds18b20.size() + 1);
-    float pressure = this->data.bmp.pressure;
-    float altitude = this->data.bmp.altitude;
+    float pressure = this->data.bmp280.pressure;
+    float altitude = this->data.bmp280.altitude;
     float lightmeter = this->data.lightmeter;
 
     stream << "{";

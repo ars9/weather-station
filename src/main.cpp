@@ -17,7 +17,7 @@ Sensors sensors = Sensors();
 
 void task_bmp_read()
 {
-  BMP280Data bmp_data = sensors.read_bmp();
+  BMP280Data bmp_data = sensors.read_bmp280();
 
   Serial.printf("[BMP280] Temperature: %f℃\n", bmp_data.temperature);
   Serial.printf("[BMP280] Pressure: %fPa\n", bmp_data.pressure);
@@ -76,7 +76,7 @@ void setup()
     scheduler.add_task("DS18B20 measurements", task_ds18b20_read, 10000);
   }
 
-  if (sensors.init_bmp())
+  if (sensors.init_bmp280())
   {
     scheduler.add_task("BMP280 measurements", task_bmp_read, 10000);
   }

@@ -30,7 +30,7 @@ struct DS18B20Data
 
 struct SensorData
 {
-    BMP280Data bmp;
+    BMP280Data bmp280;
     std::vector<DS18B20Data> ds18b20;
     float lightmeter;
 };
@@ -38,11 +38,11 @@ struct SensorData
 class Sensors
 {
 public:
-    bool init_bmp();
+    bool init_bmp280();
     bool init_ds18b20();
     bool init_lightmeter();
 
-    BMP280Data read_bmp();
+    BMP280Data read_bmp280();
     DS18B20Data read_ds18b20(uint8_t index = 0);
     uint8_t get_ds18b20_count();
     float read_lightmeter();
@@ -50,7 +50,7 @@ public:
     const char* get_json();
 
 private:
-    Adafruit_BMP280 bmp;
+    Adafruit_BMP280 bmp280;
     OneWire oneWire;
     DallasTemperature ds18b20;
     BH1750 lightMeter;
