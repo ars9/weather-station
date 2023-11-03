@@ -1,5 +1,38 @@
 #include "sensors.hpp"
 
+bool Sensors::i2c_scanner() {
+    Serial.println("[Sensors] Scanning I2C bus...");
+    byte error, address;
+    int nDevices;
+
+    nDevices = 0;
+    for (address = 1; address < 127; address++)
+    {
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+
+        if (error == 0)
+        {
+            Serial.printf("[Sensors] I2C device found at address 0x%x\n", address);
+            nDevices++;
+        }
+        else if (error == 4)
+        {
+            Serial.printf("[Sensors] Unknown error at address 0x%x\n", address);
+        }
+    }
+    if (nDevices == 0)
+    {
+        Serial.println("[Sensors] No I2C devices found\n");
+        return false;
+    }
+    else
+    {
+        Serial.println("[Sensors] Done");
+        return true;
+    }
+}
+
 bool Sensors::init_bmp280()
 {
     Serial.print("[Sensors] Initializing BMP280...");
@@ -7,6 +40,7 @@ bool Sensors::init_bmp280()
     {
 
         Serial.println(" Done");
+        is_bmp280_on = true;
         return true;
     }
     else
@@ -40,6 +74,7 @@ bool Sensors::init_bme680()
         bme680.setIIRFilterSize(BME680_FILTER_SIZE_3);
         bme680.setGasHeater(320, 150); // 320*C for 150 ms
         Serial.println(" Done");
+        is_bme680_on = true;
         return true;
     }
     else
@@ -76,6 +111,7 @@ bool Sensors::init_ds18b20()
         this->data.ds18b20.resize(device_count);
         ds18b20.requestTemperatures();
         Serial.printf(" Done (%d devices found)\n", ds18b20.getDeviceCount());
+        is_ds18b20_on = true;
         return true;
     }
     else
@@ -106,6 +142,7 @@ bool Sensors::init_bh1750()
     if (bh1750.begin(BH1750::CONTINUOUS_HIGH_RES_MODE))
     {
         Serial.println(" Done");
+        is_bh1750_on = true;
         return true;
     }
     else
@@ -144,4 +181,24 @@ const char *Sensors::get_json()
 
     jsonOutput = stream.str();
     return jsonOutput.c_str();
+}
+
+BMP280Data Sensors::get_bmp280()
+{
+    return this->data.bmp280;
+}
+
+BME680Data Sensors::get_bme680()
+{
+    return this->data.bme680;
+}
+
+std::vector<DS18B20Data> Sensors::get_ds18b20()
+{
+    return this->data.ds18b20;
+}
+
+float Sensors::get_bh1750()
+{
+    return this->data.bh1750;
 }

@@ -19,6 +19,8 @@
 #define BME_MOSI 11
 #define BME_CS 10
 
+// HW239A
+
 #define ONE_WIRE_BUS 15
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -54,6 +56,7 @@ struct SensorData
 class Sensors
 {
 public:
+    bool i2c_scanner();
     bool init_bmp280();
     bool init_bme680();
     bool init_ds18b20();
@@ -66,6 +69,15 @@ public:
     float read_bh1750();
 
     const char* get_json();
+    BMP280Data get_bmp280();
+    BME680Data get_bme680();
+    std::vector<DS18B20Data> get_ds18b20();
+    float get_bh1750();
+
+    bool is_bmp280_on = false;
+    bool is_bme680_on = false;
+    bool is_ds18b20_on = false;
+    bool is_bh1750_on = false;
 
 private:
     Adafruit_BMP280 bmp280;
