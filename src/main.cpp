@@ -15,13 +15,23 @@ Indication indication = Indication();
 Scheduler scheduler = Scheduler();
 Sensors sensors = Sensors();
 
-void task_bmp_read()
+void task_bmp280_read()
 {
   BMP280Data bmp_data = sensors.read_bmp280();
 
   Serial.printf("[BMP280] Temperature: %f℃\n", bmp_data.temperature);
   Serial.printf("[BMP280] Pressure: %fPa\n", bmp_data.pressure);
   Serial.printf("[BMP280] Altitude: %fm\n", bmp_data.altitude);
+}
+
+void task_bme680_read() {
+  BME680Data bme_data = sensors.read_bme680();
+
+  Serial.printf("[BME680] Temperature: %f℃\n", bme_data.temperature);
+  Serial.printf("[BME680] Pressure: %fPa\n", bme_data.pressure);
+  Serial.printf("[BME680] Humidity: %f%%\n", bme_data.humidity);
+  Serial.printf("[BME680] Gas resistance: %fΩ\n", bme_data.gas_resistance);
+  Serial.printf("[BME680] Altitude: %fm\n", bme_data.altitude);
 }
 
 void task_ds18b20_read()
@@ -78,20 +88,25 @@ void setup()
 
   if (sensors.init_bmp280())
   {
-    scheduler.add_task("BMP280 measurements", task_bmp_read, 10000);
+    scheduler.add_task("BMP280 measurements", task_bmp280_read, 10000);
   }
 
-  if (sensors.init_lightmeter())
+  if (sensors.init_bme680())
+  {
+    scheduler.add_task("BME680 measurements", task_bme680_read, 10000);
+  }
+
+  if (sensors.init_bh1750())
   {
     scheduler.add_task(
         "BH1750 measurements", []()
-        { Serial.printf("[BH1750] Light intensity: %flx\n", sensors.read_lightmeter()); },
+        { Serial.printf("[BH1750] Light intensity: %flx\n", sensors.read_bh1750()); },
         10000);
 
     scheduler.add_task(
         "BH1750 indication", []()
         {
-          float lux = sensors.read_lightmeter();
+          float lux = sensors.read_bh1750();
 
           if (lux <= 0)
           {

@@ -2,7 +2,6 @@
 
 bool Sensors::init_bmp280()
 {
-
     Serial.print("[Sensors] Initializing BMP280...");
     if (bmp280.begin(0x76, 0x60))
     {
@@ -26,6 +25,40 @@ BMP280Data Sensors::read_bmp280()
     data.altitude = bmp280.readAltitude(SEALEVELPRESSURE_HPA);
 
     this->data.bmp280 = data;
+
+    return data;
+}
+
+bool Sensors::init_bme680()
+{
+    Serial.print("[Sensors] Initializing BME680...");
+    if (bme680.begin())
+    {
+        bme680.setTemperatureOversampling(BME680_OS_8X);
+        bme680.setHumidityOversampling(BME680_OS_2X);
+        bme680.setPressureOversampling(BME680_OS_4X);
+        bme680.setIIRFilterSize(BME680_FILTER_SIZE_3);
+        bme680.setGasHeater(320, 150); // 320*C for 150 ms
+        Serial.println(" Done");
+        return true;
+    }
+    else
+    {
+        Serial.println(" Failed");
+        return false;
+    }
+}
+
+BME680Data Sensors::read_bme680()
+{
+    BME680Data data;
+    data.temperature = bme680.temperature;
+    data.pressure = bme680.pressure;
+    data.humidity = bme680.humidity;
+    data.gas_resistance = bme680.gas_resistance;
+    data.altitude = bme680.readAltitude(SEALEVELPRESSURE_HPA);
+
+    this->data.bme680 = data;
 
     return data;
 }
@@ -67,10 +100,10 @@ uint8_t Sensors::get_ds18b20_count()
     return ds18b20.getDeviceCount();
 }
 
-bool Sensors::init_lightmeter()
+bool Sensors::init_bh1750()
 {
     Serial.print("[Sensors] Initializing BH1750...");
-    if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE))
+    if (bh1750.begin(BH1750::CONTINUOUS_HIGH_RES_MODE))
     {
         Serial.println(" Done");
         return true;
@@ -82,10 +115,10 @@ bool Sensors::init_lightmeter()
     }
 }
 
-float Sensors::read_lightmeter()
+float Sensors::read_bh1750()
 {
-    this->data.lightmeter = lightMeter.readLightLevel();
-    return lightMeter.readLightLevel();
+    this->data.bh1750 = bh1750.readLightLevel();
+    return bh1750.readLightLevel();
 }
 
 const char *Sensors::get_json()
@@ -100,13 +133,13 @@ const char *Sensors::get_json()
     float temperature = totalTemperature / (this->data.ds18b20.size() + 1);
     float pressure = this->data.bmp280.pressure;
     float altitude = this->data.bmp280.altitude;
-    float lightmeter = this->data.lightmeter;
+    float bh1750 = this->data.bh1750;
 
     stream << "{";
     stream << "\"temperature\": " << temperature << ",";
     stream << "\"pressure\": " << pressure << ",";
     stream << "\"altitude\": " << altitude << ",";
-    stream << "\"lightmeter\": " << lightmeter;
+    stream << "\"lightmeter\": " << bh1750;
     stream << "}";
 
     jsonOutput = stream.str();
