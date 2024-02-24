@@ -2,123 +2,186 @@
 
 #include "indication.hpp"
 #include "network.hpp"
-#include "scheduler.hpp"
 #include "sensors.hpp"
 
-#define TICK_INTERVAL 100
 #define SERIAL_BAUD_RATE 115200
 
 const int LED_BUILTIN = 2;
 
 Network network = Network();
 Indication indication = Indication();
-Scheduler scheduler = Scheduler();
 Sensors sensors = Sensors();
 
-void task_bmp280_read()
+void task_bmp280_read(void *pvParameters)
 {
-  BMP280Data bmp_data = sensors.read_bmp280();
-
-  Serial.printf("[BMP280] Temperature: %f℃\n", bmp_data.temperature);
-  Serial.printf("[BMP280] Pressure: %fPa\n", bmp_data.pressure);
-  Serial.printf("[BMP280] Altitude: %fm\n", bmp_data.altitude);
-}
-
-void task_bme680_read()
-{
-  BME680Data bme_data = sensors.read_bme680();
-
-  Serial.printf("[BME680] Temperature: %f℃\n", bme_data.temperature);
-  Serial.printf("[BME680] Pressure: %fPa\n", bme_data.pressure);
-  Serial.printf("[BME680] Humidity: %f%%\n", bme_data.humidity);
-  Serial.printf("[BME680] Gas resistance: %fΩ\n", bme_data.gas_resistance);
-  Serial.printf("[BME680] Altitude: %fm\n", bme_data.altitude);
-}
-
-void task_ds18b20_read()
-{
-  for (uint8_t i = 0; i < sensors.get_ds18b20_count(); i++)
+  for (;;)
   {
-    DS18B20Data ds18b20_data = sensors.read_ds18b20(i);
+    BMP280Data bmp_data = sensors.read_bmp280();
 
-    Serial.printf("[DS18B20:%d] Temperature: %f℃\n", i, ds18b20_data.temperature);
+    Serial.printf("[BMP280] Temperature: %f℃\n", bmp_data.temperature);
+    Serial.printf("[BMP280] Pressure: %fPa\n", bmp_data.pressure);
+    Serial.printf("[BMP280] Altitude: %fm\n", bmp_data.altitude);
+
+    vTaskDelay(pdMS_TO_TICKS(10000));
   }
 }
 
-void task_post_sensor_data()
+void task_bme680_read(void *pvParameters)
 {
-  Serial.println("[HTTP] Posting sensor data");
+  for (;;)
+  {
+    BME680Data bme_data = sensors.read_bme680();
 
-  network.post(POST_URL, sensors.get_json());
+    Serial.printf("[BME680] Temperature: %f℃\n", bme_data.temperature);
+    Serial.printf("[BME680] Pressure: %fPa\n", bme_data.pressure);
+    Serial.printf("[BME680] Humidity: %f%%\n", bme_data.humidity);
+    Serial.printf("[BME680] Gas resistance: %fΩ\n", bme_data.gas_resistance);
+    Serial.printf("[BME680] Altitude: %fm\n", bme_data.altitude);
+
+    vTaskDelay(pdMS_TO_TICKS(10000));
+  }
 }
 
-void task_display_data()
+void task_ds18b20_read(void *pvParameters)
 {
-  std::ostringstream stream;
-  stream.precision(3);
-  if (indication.display_page == 0)
+  for (;;)
   {
-    if (sensors.is_bmp280_on)
+    for (uint8_t i = 0; i < sensors.get_ds18b20_count(); i++)
     {
-      stream << "BMP280" << std::endl;
-      stream << "T:" << sensors.get_bmp280().temperature << " C" << std::endl;
-      stream << "P:" << sensors.get_bmp280().pressure / 1000 << " kPa" << std::endl;
+      DS18B20Data ds18b20_data = sensors.read_ds18b20(i);
+
+      Serial.printf("[DS18B20:%d] Temperature: %f℃\n", i, ds18b20_data.temperature);
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(10000));
+  }
+}
+
+void task_bh1750_read(void *pvParameters)
+{
+  for (;;)
+  {
+    float lux = sensors.read_bh1750();
+
+    Serial.printf("[BH1750] Light intensity: %flx\n", lux);
+
+    vTaskDelay(pdMS_TO_TICKS(10000));
+  }
+}
+
+void task_bh1750_indication(void *pvParameters)
+{
+  for (;;)
+  {
+    float lux = sensors.read_bh1750();
+
+    if (lux <= 0)
+    {
+      indication.analog_led(0);
     }
     else
     {
-      indication.display_page++;
+      float logLux = log10(lux);
+      float scaledLux = map(logLux, -1, 4, 100, 255);
+      indication.analog_led(scaledLux);
     }
-  }
 
-  if (indication.display_page == 1)
-  {
-    if (sensors.is_bme680_on)
-    {
-      stream << "BME680" << std::endl;
-      stream << "T:" << sensors.get_bme680().temperature << " C ";
-      stream << "H:" << sensors.get_bme680().humidity << "%" << std::endl;
-      stream << "P:" << sensors.get_bme680().pressure / 1000 << " kPa" << std::endl;
-    }
-    else
-    {
-      indication.display_page++;
-    }
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
+}
 
-  if (indication.display_page == 2)
+void task_post_sensor_data(void *pvParameters)
+{
+  for (;;)
   {
-    if (sensors.is_bh1750_on)
-    {
-      stream << "BH1750" << std::endl;
-      stream << "L:" << sensors.get_bh1750() << " lx" << std::endl;
-    }
-    else
-    {
-      indication.display_page++;
-    }
+    Serial.println("[HTTP] Posting sensor data");
+
+    network.post(POST_URL, sensors.get_json());
+
+    vTaskDelay(pdMS_TO_TICKS(60000));
   }
+}
 
-  if (indication.display_page == 3)
+void task_display_data(void *pvParameters)
+{
+  for (;;)
   {
-    if (sensors.is_ds18b20_on)
+    std::ostringstream stream;
+    stream.precision(3);
+    if (indication.display_page == 0)
     {
-      stream << "DS18B20" << std::endl;
-      for (uint8_t i = 0; i < sensors.get_ds18b20().size(); i++)
+      if (sensors.is_bmp280_on)
       {
-        stream << "T:" << sensors.get_ds18b20()[i].temperature << " C" << std::endl;
+        stream << "BMP280" << std::endl;
+        stream << "T:" << sensors.get_bmp280().temperature << " C" << std::endl;
+        stream << "P:" << sensors.get_bmp280().pressure / 1000 << " kPa" << std::endl;
+      }
+      else
+      {
+        indication.display_page++;
       }
     }
-    else
+
+    if (indication.display_page == 1)
     {
-      indication.display_page++;
+      if (sensors.is_bme680_on)
+      {
+        stream << "BME680" << std::endl;
+        stream << "T:" << sensors.get_bme680().temperature << " C ";
+        stream << "H:" << sensors.get_bme680().humidity << "%" << std::endl;
+        stream << "P:" << sensors.get_bme680().pressure / 1000 << " kPa" << std::endl;
+      }
+      else
+      {
+        indication.display_page++;
+      }
     }
+
+    if (indication.display_page == 2)
+    {
+      if (sensors.is_bh1750_on)
+      {
+        stream << "BH1750" << std::endl;
+        stream << "L:" << sensors.get_bh1750() << " lx" << std::endl;
+      }
+      else
+      {
+        indication.display_page++;
+      }
+    }
+
+    if (indication.display_page == 3)
+    {
+      if (sensors.is_ds18b20_on)
+      {
+        stream << "DS18B20" << std::endl;
+        for (uint8_t i = 0; i < sensors.get_ds18b20().size(); i++)
+        {
+          stream << "T:" << sensors.get_ds18b20()[i].temperature << " C" << std::endl;
+        }
+      }
+      else
+      {
+        indication.display_page++;
+      }
+    }
+
+    indication.display_content = stream.str();
+    indication.render_page();
+    indication.display_page++;
+
+    indication.display_page = indication.display_page % 4;
+    vTaskDelay(pdMS_TO_TICKS(3000));
   }
+}
 
-  indication.display_content = stream.str();
-  indication.render_page();
-  indication.display_page++;
-
-  indication.display_page = indication.display_page % 4;
+void task_check_connection(void *pvParameters)
+{
+  for (;;)
+  {
+    network.checkConnection();
+    vTaskDelay(pdMS_TO_TICKS(30000));
+  }
 }
 
 void setup()
@@ -151,16 +214,10 @@ void setup()
 
   indication.set_line1("Task setup...");
 
-  indication.set_line2("WiFi connection");
-  scheduler.add_task(
-      "Check WiFi connection", []()
-      { network.checkConnection(); },
-      30000);
-
   indication.set_line2("DS18B20...");
   if (sensors.init_ds18b20())
   {
-    scheduler.add_task("DS18B20 measurements", task_ds18b20_read, 10000);
+    xTaskCreate(task_ds18b20_read, "DS18B20 measurements", 2048, NULL, 1, NULL);
     indication.set_line2("DS18B20... Ok");
   }
   else
@@ -171,7 +228,7 @@ void setup()
   indication.set_line2("BMP280...");
   if (sensors.init_bmp280())
   {
-    scheduler.add_task("BMP280 measurements", task_bmp280_read, 10000);
+    xTaskCreate(task_bmp280_read, "BMP280 measurements", 2048, NULL, 1, NULL);
     indication.set_line2("BMP280... Ok");
   }
   else
@@ -182,7 +239,7 @@ void setup()
   indication.set_line2("BME680...");
   if (sensors.init_bme680())
   {
-    scheduler.add_task("BME680 measurements", task_bme680_read, 10000);
+    xTaskCreate(task_bme680_read, "BME680 measurements", 2048, NULL, 1, NULL);
     indication.set_line2("BME680... Ok");
   }
   else
@@ -193,28 +250,8 @@ void setup()
   indication.set_line2("BH1750...");
   if (sensors.init_bh1750())
   {
-    scheduler.add_task(
-        "BH1750 measurements", []()
-        { Serial.printf("[BH1750] Light intensity: %flx\n", sensors.read_bh1750()); },
-        10000);
-
-    scheduler.add_task(
-        "BH1750 indication", []()
-        {
-          float lux = sensors.read_bh1750();
-
-          if (lux <= 0)
-          {
-            indication.analog_led(0);
-          }
-          else
-          {
-            float logLux = log10(lux);
-            float scaledLux = map(logLux, -1, 4, 100, 255);
-            indication.analog_led(scaledLux);
-          } },
-        100);
-
+    xTaskCreate(task_bh1750_read, "BH1750 measurements", 2048, NULL, 1, NULL);
+    xTaskCreate(task_bh1750_indication, "BH1750 indication", 2048, NULL, 1, NULL);
     indication.set_line2("BH1750... Ok");
   }
   else
@@ -222,15 +259,17 @@ void setup()
     indication.set_line2("BH1750... Err");
   }
 
-  scheduler.add_task("Display data", task_display_data, 3000);
+  xTaskCreate(task_display_data, "Display data", 20480, NULL, 1, NULL);
 
   indication.set_line2("Post data... Ok");
-  scheduler.add_task("Post sensor data", task_post_sensor_data, 60000);
+  xTaskCreate(task_post_sensor_data, "Post sensor data", 20480, NULL, 1, NULL);
+
+  indication.set_line2("Setup WiFi connection");
+  xTaskCreate(task_check_connection, "WiFi connect", 20480, NULL, 1, NULL);
 
   indication.set_line1("Network setup...");
   indication.set_line2("WiFi connect...");
   indication.set_line3(WIFI_SSID);
-  network.connect();
   indication.set_line1("");
   indication.set_line2("");
   indication.set_line3("");
@@ -238,7 +277,5 @@ void setup()
 
 void loop()
 {
-  scheduler.tick();
-
-  delay(TICK_INTERVAL);
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }
