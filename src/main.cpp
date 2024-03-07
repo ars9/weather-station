@@ -102,7 +102,7 @@ void task_post_sensor_data(void *pvParameters)
 
     char payload[512];
 
-    serializeJson(doc, payload);//TODO: fix this
+    serializeJson(doc, payload);
     Serial.printf("[HTTP] Post payload: %s\n", payload);
 
     network.post(POST_URL, payload);
