@@ -151,7 +151,7 @@ bool Network::post(const char *url, const char *payload)
     https.addHeader("Authorization", bearerToken);
   }
 
-  int httpResponseCode = https.POST(payload);
+  int httpResponseCode = https.PUT(payload);
 
   if (httpResponseCode == 201 || httpResponseCode == 200)
   {
@@ -168,48 +168,3 @@ bool Network::post(const char *url, const char *payload)
     return false;
   }
 }
-
-// void postData()
-// {
-//   pinMode(LED_BUILTIN, OUTPUT);
-//   digitalWrite(LED_BUILTIN, HIGH);
-
-//   HTTPClient https;
-
-//   Serial.println("Posting data to metrics server");
-
-//   String jsonData = "{";
-//   jsonData += "\"rawTemperature\": " + String(iaqSensor.rawTemperature) + ",";
-//   jsonData += "\"pressure\": " + String(iaqSensor.pressure) + ",";
-//   jsonData += "\"rawHumidity\": " + String(iaqSensor.rawHumidity) + ",";
-//   jsonData += "\"gasResistance\": " + String(iaqSensor.gasResistance) + ",";
-//   jsonData += "\"iaq\": " + String(iaqSensor.iaq) + ",";
-//   jsonData += "\"iaqAccuracy\": " + String(iaqSensor.iaqAccuracy) + ",";
-//   jsonData += "\"temperature\": " + String(iaqSensor.temperature) + ",";
-//   jsonData += "\"humidity\": " + String(iaqSensor.humidity) + ",";
-//   jsonData += "\"staticIaq\": " + String(iaqSensor.staticIaq) + ",";
-//   jsonData += "\"co2Equivalent\": " + String(iaqSensor.co2Equivalent) + ",";
-//   jsonData += "\"breathVocEquivalent\": " + String(iaqSensor.breathVocEquivalent);
-//   jsonData += "}";
-
-//   https.begin(secureClient, serverName);
-//   https.addHeader("Content-Type", "application/json");
-//   https.addHeader("Authorization", bearerToken);
-
-//   int httpResponseCode = https.POST(jsonData);
-
-//   if (httpResponseCode == 201)
-//   {
-//     String response = https.getString(); // You can print this to the serial monitor if you wish
-//     Serial.println(httpResponseCode);    // Print HTTP return code
-//     Serial.println(response);            // Print HTTP response
-//   }
-//   else
-//   {
-//     Serial.print("Error on sending POST: ");
-//     Serial.println(httpResponseCode);
-//   }
-
-//   https.end(); // Free the resources
-//   digitalWrite(LED_BUILTIN, LOW);
-// }

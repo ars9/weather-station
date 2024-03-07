@@ -96,7 +96,16 @@ void task_post_sensor_data(void *pvParameters)
   {
     Serial.println("[HTTP] Posting sensor data");
 
-    network.post(POST_URL, sensors.get_json());
+    JsonDocument doc;
+    doc["topic"] = TOPIC;
+    doc["payload"] = sensors.get_json();
+
+    char payload[512];
+
+    serializeJson(doc, payload);//TODO: fix this
+    Serial.printf("[HTTP] Post payload: %s\n", payload);
+
+    network.post(POST_URL, payload);
 
     vTaskDelay(pdMS_TO_TICKS(60000));
   }

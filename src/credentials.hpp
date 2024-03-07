@@ -14,16 +14,8 @@
 #define BEARER_TOKEN "Bearer MYTOKEN"
 #endif
 
-#ifndef MQTT_USER
-#define MQTT_USER "defaultUser"
-#endif
-
-#ifndef MQTT_PASSWORD
-#define MQTT_PASSWORD "defaultPassword"
-#endif
-
-#ifndef MQTT_URI
-#define MQTT_URI "mqtt://example.com"
+#ifndef TOPIC
+#define TOPIC "mytopic"
 #endif
 
 #ifndef CA_CERT

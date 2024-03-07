@@ -9,6 +9,7 @@
 #include <BH1750.h>
 #include <vector>
 #include <sstream>
+#include <ArduinoJson.h>
 
 #define BMP_SDA 21
 #define BMP_SCL 22
@@ -68,7 +69,7 @@ public:
     uint8_t get_ds18b20_count();
     float read_bh1750();
 
-    const char* get_json();
+    JsonDocument get_json();
     BMP280Data get_bmp280();
     BME680Data get_bme680();
     std::vector<DS18B20Data> get_ds18b20();

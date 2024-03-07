@@ -158,9 +158,8 @@ float Sensors::read_bh1750()
     return bh1750.readLightLevel();
 }
 
-const char *Sensors::get_json()
+JsonDocument Sensors::get_json()
 {
-    std::ostringstream stream;
     float totalTemperature = this->data.bmp280.temperature;
     for (const auto &sensor : this->data.ds18b20)
     {
@@ -172,15 +171,14 @@ const char *Sensors::get_json()
     float altitude = this->data.bmp280.altitude;
     float bh1750 = this->data.bh1750;
 
-    stream << "{";
-    stream << "\"temperature\": " << temperature << ",";
-    stream << "\"pressure\": " << pressure << ",";
-    stream << "\"altitude\": " << altitude << ",";
-    stream << "\"lightmeter\": " << bh1750;
-    stream << "}";
+    JsonDocument doc;
 
-    jsonOutput = stream.str();
-    return jsonOutput.c_str();
+    doc["temperature"] = temperature;
+    doc["pressure"] = pressure;
+    doc["altitude"] = altitude;
+    doc["lightmeter"] = bh1750;
+
+    return doc;
 }
 
 BMP280Data Sensors::get_bmp280()
